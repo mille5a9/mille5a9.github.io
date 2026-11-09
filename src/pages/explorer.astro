@@ -1,22 +1,20 @@
 ---
 import Base from "../layouts/Base.astro";
-import { nbaMethods } from "../data/nbaMethods";
-
-const groups = [...new Set(nbaMethods.map((m) => m.group))];
+import { sports, LIBRARY_VERSION } from "../data/apiSports";
 ---
 
 <Base
-  title="api-nba-kotlin explorer"
-  description="Try every method of the api-nba-kotlin library against the live API-NBA API, and see the matching Kotlin."
+  title="api-sports-kotlin explorer"
+  description="Try every method of the api-sports-kotlin NBA and NFL clients against the live API-SPORTS APIs, and see the matching Kotlin."
 >
-  <h1>api-nba-kotlin explorer</h1>
+  <h1>api-sports-kotlin explorer</h1>
   <p>
-    Pick a method from <a href="https://github.com/mille5a9/api-sports-kotlin">api-nba-kotlin</a>, my Kotlin client
-    for <a href="https://api-sports.io/documentation/nba/v2">API-NBA</a>, and run the request it makes against the live
-    API. The Kotlin on the right is the code that gets you the same data from the library.
+    Pick a method from <a href="https://github.com/mille5a9/api-sports-kotlin">api-sports-kotlin</a>, my Kotlin
+    clients for the <a href="https://api-sports.io">API-SPORTS</a> NBA and American football APIs, and run the
+    request it makes against the live API. The Kotlin next to it gets you the same data from the library.
   </p>
   <p class="muted small">
-    Snippets target <code>1.0.4-alpha</code>, the current release on <a href="https://central.sonatype.com/artifact/io.github.mille5a9/api-nba-kotlin">Maven Central</a>.
+    Snippets target <code>{LIBRARY_VERSION}</code>. Full reference in the <a href="/api-sports-kotlin/">API docs</a>.
   </p>
 
   <section class="panel key">
@@ -27,70 +25,72 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
     </div>
     <label class="check"><input type="checkbox" id="rememberKey" /> Remember it in this browser</label>
     <p class="muted small">
-      Requests go from your browser straight to <code>v2.nba.api-sports.io</code>. The key is never sent anywhere
-      else. You can get a free key at <a href="https://dashboard.api-football.com/register">api-sports.io</a>.
+      One key works for both APIs. Requests go from your browser straight to <code>api-sports.io</code>, and the key
+      is never sent anywhere else. You can get a free key at
+      <a href="https://dashboard.api-football.com/register">api-sports.io</a>.
     </p>
   </section>
 
   <div class="wide">
-  <div class="layout">
-    <section class="panel">
-      <label for="method">Method</label>
-      <select id="method">
-        {
-          groups.map((group) => (
-            <optgroup label={group}>
-              {nbaMethods
-                .filter((m) => m.group === group)
-                .map((m) => (
-                  <option value={m.name}>{m.name}</option>
-                ))}
-            </optgroup>
-          ))
-        }
-      </select>
-      <p id="summary" class="muted"></p>
-      <form id="params"></form>
-      <button type="button" id="run">Run request</button>
-      <p class="muted small request">
-        <span class="label">Request</span>
-        <code id="requestLine"></code>
-      </p>
-    </section>
+    <div class="layout">
+      <section class="panel">
+        <fieldset class="sports">
+          <legend class="sr-only">API</legend>
+          {
+            sports.map((s, i) => (
+              <label class="sport">
+                <input type="radio" name="sport" value={s.id} checked={i === 0} />
+                <span>{s.label}</span>
+              </label>
+            ))
+          }
+        </fieldset>
+        <p id="apiName" class="muted small"></p>
+        <label for="method">Method</label>
+        <select id="method"></select>
+        <p id="summary" class="muted"></p>
+        <form id="params"></form>
+        <button type="button" id="run">Run request</button>
+        <p class="muted small request">
+          <span class="label">Request</span>
+          <code id="requestLine"></code>
+        </p>
+      </section>
 
-    <section class="panel code">
-      <div class="code-head">
-        <span class="label">Kotlin</span>
-        <button type="button" class="secondary small-btn" data-copy="kotlin">Copy</button>
-      </div>
-      <pre><code id="kotlin"></code></pre>
-      <details>
-        <summary>Gradle dependency</summary>
-        <pre><code>implementation("io.github.mille5a9:api-nba-kotlin:1.0.4-alpha")</code></pre>
-      </details>
-    </section>
-  </div>
-
-  <section class="panel response" aria-live="polite">
-    <div class="code-head">
-      <span class="label">Response</span>
-      <span id="status" class="muted small"></span>
-      <button type="button" class="secondary small-btn" data-copy="json" hidden>Copy</button>
+      <section class="panel code">
+        <div class="code-head">
+          <span class="label">Kotlin</span>
+          <button type="button" class="secondary small-btn" data-copy="kotlin">Copy</button>
+        </div>
+        <pre><code id="kotlin"></code></pre>
+        <details>
+          <summary>Gradle dependency</summary>
+          <pre><code id="gradle"></code></pre>
+        </details>
+      </section>
     </div>
-    <p id="error" class="error" hidden></p>
-    <pre id="jsonWrap" hidden><code id="json"></code></pre>
-    <button type="button" id="showAll" class="secondary" hidden>Show the full response</button>
-    <p id="empty" class="muted">Run a request to see the response here.</p>
-  </section>
+
+    <section class="panel response" aria-live="polite">
+      <div class="code-head">
+        <span class="label">Response</span>
+        <span id="status" class="muted small"></span>
+        <button type="button" class="secondary small-btn" data-copy="json" hidden>Copy</button>
+      </div>
+      <p id="error" class="error" hidden></p>
+      <pre id="jsonWrap" hidden><code id="json"></code></pre>
+      <button type="button" id="showAll" class="secondary" hidden>Show the full response</button>
+      <p id="empty" class="muted">Run a request to see the response here.</p>
+    </section>
   </div>
 </Base>
 
 <script>
-  import { nbaMethods, type NbaMethod } from "../data/nbaMethods";
+  import { sports, LIBRARY_VERSION, type ApiMethod, type MethodParam, type SportApi } from "../data/apiSports";
 
-  const BASE_URL = "https://v2.nba.api-sports.io/";
-  const KEY_STORAGE = "api-nba-explorer-key";
+  const KEY_STORAGE = "api-sports-explorer-key";
+  const OLD_KEY_STORAGE = "api-nba-explorer-key";
   const PREVIEW_CHARS = 40_000;
+  const LEAGUE_CONSTANTS: Record<string, string> = { "1": "NFL", "2": "NCAA" };
 
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const keyInput = $<HTMLInputElement>("apiKey");
@@ -106,7 +106,9 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
   const emptyEl = $("empty");
   const showAll = $<HTMLButtonElement>("showAll");
   const copyJson = document.querySelector<HTMLButtonElement>('[data-copy="json"]')!;
+  const sportRadios = [...document.querySelectorAll<HTMLInputElement>('input[name="sport"]')];
 
+  let sport: SportApi = sports[0];
   let fullJson = "";
 
   // localStorage can be missing or throw (private windows, blocked storage); the page works without it.
@@ -128,10 +130,12 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
     },
   };
 
-  const savedKey = storage.get(KEY_STORAGE);
+  const savedKey = storage.get(KEY_STORAGE) ?? storage.get(OLD_KEY_STORAGE);
   if (savedKey) {
     keyInput.value = savedKey;
     remember.checked = true;
+    storage.set(KEY_STORAGE, savedKey);
+    storage.set(OLD_KEY_STORAGE, null);
   }
   remember.addEventListener("change", () => storage.set(KEY_STORAGE, remember.checked ? keyInput.value : null));
   keyInput.addEventListener("input", () => {
@@ -143,53 +147,101 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
     (e.currentTarget as HTMLButtonElement).textContent = shown ? "Show" : "Hide";
   });
 
-  const current = (): NbaMethod => nbaMethods.find((m) => m.name === methodSelect.value)!;
+  const current = (): ApiMethod => sport.methods.find((m) => m.id === methodSelect.value)!;
 
-  function values(method: NbaMethod): string[] {
+  function values(method: ApiMethod): string[] {
     return method.params.map((p) => (form.elements.namedItem(p.name) as HTMLInputElement | null)?.value.trim() ?? "");
   }
 
-  function query(method: NbaMethod, vals: string[]): URLSearchParams {
+  function query(method: ApiMethod, vals: string[]): URLSearchParams {
     const q = new URLSearchParams();
     const h2h: string[] = [];
     method.params.forEach((p, i) => {
       if (p.combine) h2h[p.combine === "h2h-first" ? 0 : 1] = vals[i];
-      else q.set(p.query, vals[i]);
+      else if (vals[i] !== "" || !p.optional) q.set(p.query, vals[i]);
     });
     if (h2h.length) q.set("h2h", `${h2h[0] ?? ""}-${h2h[1] ?? ""}`);
     for (const [k, v] of Object.entries(method.fixed ?? {})) q.set(k, v);
     return q;
   }
 
-  function requestUrl(method: NbaMethod, vals: string[]): string {
+  function requestUrl(method: ApiMethod, vals: string[]): string {
     const q = query(method, vals).toString();
-    return BASE_URL + method.endpoint + (q ? `?${q}` : "");
+    return sport.baseUrl + method.endpoint + (q ? `?${q}` : "");
   }
 
-  function kotlinLiteral(type: string, value: string): string {
-    if (type === "Int") return /^-?\d+$/.test(value) ? value : `/* ${value ? "not a number" : "Int"} */ 0`;
+  function kotlinLiteral(p: MethodParam, value: string): string {
+    if (p.type === "Int") {
+      if (!/^-?\d+$/.test(value)) return `/* ${value ? "not a number" : "Int"} */ 0`;
+      if (p.league && LEAGUE_CONSTANTS[value]) return `${sport.client}.${LEAGUE_CONSTANTS[value]}`;
+      return value;
+    }
+    if (p.type === "Boolean") return value === "true" ? "true" : "false";
     return JSON.stringify(value);
   }
 
-  function kotlin(method: NbaMethod, vals: string[]): string {
-    const args = method.params.map((p, i) => `${p.name} = ${kotlinLiteral(p.type, vals[i])}`);
-    const call =
-      args.length <= 1 ? `nba.${method.name}(${args.join("")})` : `nba.${method.name}(\n        ${args.join(",\n        ")},\n    )`;
-    const type = method.rawReturn ?? `EndpointResponse<${method.returns}>`;
-    const usage = method.rawReturn ? "println(result)" : "result.response.forEach(::println)";
-    const imports = ["api.nba.kotlin.ApiNbaClient", "api.nba.kotlin.enums.HostEnum"];
+  function kotlin(method: ApiMethod, vals: string[]): string {
+    const v = sport.variable;
+    const used = method.params
+      .map((p, i) => ({ p, value: vals[i] }))
+      .filter(({ p, value }) => !(p.optional && value === ""));
+
+    let call: string[];
+    if (method.dsl) {
+      call = used.length
+        ? [`${v}.${method.name} {`, ...used.map(({ p, value }) => `    ${p.name} = ${kotlinLiteral(p, value)}`), "}"]
+        : [`${v}.${method.name} { }`];
+    } else {
+      const args = used.map(({ p, value }) => `${p.name} = ${kotlinLiteral(p, value)}`);
+      call =
+        args.length <= 1 ? [`${v}.${method.name}(${args.join("")})`] : [`${v}.${method.name}(`, ...args.map((a) => `    ${a},`), ")"];
+    }
+    const indent = (line: string) => `        ${line}`;
+    const usage = method.returns === "ApiResponse<AccountStatus>" ? "println(result.response)" : "result.response.forEach(::println)";
     return [
-      ...imports.map((i) => `import ${i}`),
+      `import ${sport.pkg}.${sport.client}`,
       "",
       "suspend fun main() {",
-      '    val apiKey = System.getenv("API_SPORTS_KEY")',
-      "    val nba = ApiNbaClient(HostEnum.API_SPORTS, apiKey)",
-      "",
-      `    // ${type}`,
-      `    val result = ${call}`,
-      `    ${usage}`,
+      `    ${sport.client}(System.getenv("API_SPORTS_KEY")).use { ${v} ->`,
+      `        // ${method.returns}`,
+      indent(`val result = ${call[0]}`),
+      ...call.slice(1).map(indent),
+      indent(usage),
+      "    }",
       "}",
     ].join("\n");
+  }
+
+  function note(text: string) {
+    const p = document.createElement("p");
+    p.className = "muted small";
+    p.textContent = text;
+    return p;
+  }
+
+  function renderMethods(selected?: string) {
+    methodSelect.replaceChildren();
+    const groups = [...new Set(sport.methods.map((m) => m.group))];
+    for (const group of groups) {
+      const og = document.createElement("optgroup");
+      og.label = group;
+      for (const m of sport.methods.filter((x) => x.group === group)) {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.dsl ? `${m.name} { … }` : m.name;
+        og.append(opt);
+      }
+      methodSelect.append(og);
+    }
+    methodSelect.value = sport.methods.some((m) => m.id === selected) ? selected! : sport.defaultMethod;
+    const apiName = $("apiName");
+    apiName.replaceChildren(`${sport.client} · `);
+    const a = document.createElement("a");
+    a.href = sport.docsUrl;
+    a.textContent = sport.apiName;
+    apiName.append(a);
+    $("gradle").textContent = `implementation("io.github.mille5a9:${sport.artifact}:${LIBRARY_VERSION}")`;
+    renderParams();
   }
 
   function renderParams() {
@@ -205,41 +257,24 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
       name.textContent = p.name;
       const type = document.createElement("span");
       type.className = "muted";
-      type.textContent = `: ${p.type}`;
+      type.textContent = `: ${p.type}${p.optional ? "?" : ""}`;
       label.append(name, type);
       const input = document.createElement("input");
       input.id = `p-${p.name}`;
       input.name = p.name;
-      input.value = p.example;
-      input.required = true;
+      input.value = p.example ?? "";
+      input.required = !p.optional;
       input.autocomplete = "off";
       if (p.type === "Int") input.inputMode = "numeric";
       field.append(label, input);
-      if (p.hint) {
-        const hint = document.createElement("p");
-        hint.className = "muted small";
-        hint.textContent = p.hint;
-        field.append(hint);
-      }
+      if (p.hint) field.append(note(p.hint));
       form.append(field);
     }
-    if (!method.params.length) {
-      const none = document.createElement("p");
-      none.className = "muted small";
-      none.textContent = method.fixed
-        ? `No arguments. The method always sends ${Object.entries(method.fixed)
-            .map(([k, v]) => `${k}=${v}`)
-            .join(", ")}.`
-        : "No arguments.";
-      form.append(none);
-    } else if (method.fixed) {
-      const note = document.createElement("p");
-      note.className = "muted small";
-      note.textContent = `The method also sends ${Object.entries(method.fixed)
-        .map(([k, v]) => `${k}=${v}`)
-        .join(", ")}.`;
-      form.append(note);
-    }
+    const fixed = Object.entries(method.fixed ?? {})
+      .map(([k, v]) => `${k}=${v}`)
+      .join(", ");
+    if (!method.params.length) form.append(note(fixed ? `No arguments. The method always sends ${fixed}.` : "No arguments."));
+    else if (fixed) form.append(note(`The method also sends ${fixed}.`));
     update();
   }
 
@@ -249,7 +284,7 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
     kotlinEl.textContent = kotlin(method, vals);
     $("requestLine").textContent = `GET ${requestUrl(method, vals)}`;
     try {
-      history.replaceState(null, "", `#${method.name}`);
+      history.replaceState(null, "", `#${sport.id}/${method.id}`);
     } catch {
       /* ignore */
     }
@@ -282,7 +317,7 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
     if (!form.reportValidity()) return;
 
     const vals = values(method);
-    const badInt = method.params.find((p, i) => p.type === "Int" && !/^-?\d+$/.test(vals[i]));
+    const badInt = method.params.find((p, i) => p.type === "Int" && vals[i] !== "" && !/^-?\d+$/.test(vals[i]));
     if (badInt) {
       showError(`${badInt.name} must be a whole number.`);
       return;
@@ -307,8 +342,13 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
       const results = typeof body?.results === "number" ? ` · ${body.results} result${body.results === 1 ? "" : "s"}` : "";
       statusEl.textContent = `HTTP ${res.status} · ${ms} ms${results}`;
 
+      // The library throws ApiSportsException for any of these.
       const errors = body?.errors;
-      const errorList = Array.isArray(errors) ? errors.map(String) : errors && typeof errors === "object" ? Object.entries(errors).map(([k, v]) => `${k}: ${v}`) : [];
+      const errorList = Array.isArray(errors)
+        ? errors.map(String)
+        : errors && typeof errors === "object"
+          ? Object.entries(errors).map(([k, v]) => `${k}: ${v}`)
+          : [];
       const tokenError = errors && typeof errors === "object" && !Array.isArray(errors) && "token" in errors;
       if (tokenError) showError("The API didn't accept that key. Check it on your API-SPORTS dashboard.");
       else if (errorList.length) showError(`The API returned an error. ${errorList.join(" ")}`);
@@ -320,6 +360,13 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
     }
   }
 
+  function setSport(id: string, method?: string) {
+    sport = sports.find((s) => s.id === id) ?? sports[0];
+    for (const r of sportRadios) r.checked = r.value === sport.id;
+    renderMethods(method);
+  }
+
+  sportRadios.forEach((r) => r.addEventListener("change", () => setSport(r.value)));
   methodSelect.addEventListener("change", renderParams);
   form.addEventListener("input", update);
   form.addEventListener("submit", (e) => {
@@ -334,7 +381,7 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
 
   document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((button) => {
     button.addEventListener("click", async () => {
-      const text = button.dataset.copy === "json" ? fullJson : kotlinEl.textContent ?? "";
+      const text = button.dataset.copy === "json" ? fullJson : (kotlinEl.textContent ?? "");
       try {
         await navigator.clipboard.writeText(text);
         button.textContent = "Copied";
@@ -345,15 +392,24 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
     });
   });
 
-  const fromHash = decodeURIComponent(location.hash.slice(1));
-  if (nbaMethods.some((m) => m.name === fromHash)) methodSelect.value = fromHash;
-  else methodSelect.value = "getTeamByCode";
-  renderParams();
+  // #nfl/getStandings, or the old #getTeamByCode form (NBA).
+  const hash = decodeURIComponent(location.hash.slice(1));
+  const [first, second] = hash.split("/");
+  if (second !== undefined) setSport(first, second);
+  else setSport("nba", first || undefined);
 </script>
 
 <style>
   .small {
     font-size: 0.88rem;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
   .label {
     font-size: 0.8rem;
@@ -386,11 +442,46 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
     font-weight: 400;
     margin-top: 0.6rem;
   }
+  .sports {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    margin: 0 0 0.4rem;
+    gap: 3px;
+  }
+  label.sport {
+    margin: 0;
+    font-weight: 500;
+    font-size: 0.92rem;
+    cursor: pointer;
+  }
+  label.sport input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  label.sport span {
+    display: block;
+    padding: 0.3rem 0.85rem;
+    border-radius: 6px;
+    color: var(--muted);
+  }
+  label.sport input:checked + span {
+    background: var(--accent-soft);
+    color: var(--text);
+  }
+  label.sport input:focus-visible + span {
+    outline: 2px solid var(--accent);
+  }
+  #apiName {
+    margin: 0 0 0.9rem;
+  }
   .row {
     display: flex;
     gap: 0.5rem;
   }
-  input:not([type="checkbox"]),
+  input:not([type="checkbox"]):not([type="radio"]),
   select {
     width: 100%;
     font: inherit;
@@ -410,6 +501,7 @@ const groups = [...new Set(nbaMethods.map((m) => m.group))];
   #summary {
     margin: 0.6rem 0 0.9rem;
   }
+  /* Elements created by the script don't get Astro's scoped class, so style the form's contents globally. */
   #params :global(.field) {
     margin-bottom: 0.8rem;
   }

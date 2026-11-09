@@ -26,14 +26,15 @@ export const projects: Project[] = [
   {
     name: "api-sports-kotlin",
     summary:
-      "Unofficial Kotlin client libraries for the API-SPORTS APIs, starting with API-NBA. Typed models, a generated parameter DSL, and errors surfaced as exceptions. Published to Maven Central.",
-    tags: ["Kotlin", "Ktor", "kotlinx.serialization", "KSP", "Dokka", "Gradle"],
+      "Unofficial, coroutine-based Kotlin clients for the API-SPORTS NBA and American football (NFL and NCAA) APIs, covering every endpoint. Typed models, a generated parameter DSL, and API errors surfaced as exceptions. Version 2.0 is on Maven Central.",
+    tags: ["Kotlin", "Ktor", "kotlinx.serialization", "Coroutines", "KSP", "Dokka", "Gradle"],
     links: [
-      { label: "Try it in the browser", href: "/api-sports-kotlin/" },
+      { label: "Try it in the browser", href: "/explorer/" },
+      { label: "API docs", href: "/api-sports-kotlin/" },
       { label: "GitHub", href: "https://github.com/mille5a9/api-sports-kotlin" },
       {
         label: "Maven Central",
-        href: "https://central.sonatype.com/artifact/io.github.mille5a9/api-nba-kotlin",
+        href: "https://central.sonatype.com/namespace/io.github.mille5a9",
       },
     ],
     featured: true,
