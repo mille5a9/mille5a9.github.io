@@ -1,0 +1,21 @@
+---
+import Base from "../layouts/Base.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { projects } from "../data/projects";
+---
+
+<Base title="Projects" description="Apps, libraries, and tools built by Andrew Miller.">
+  <h1>Projects</h1>
+  <p class="muted">Apps, libraries, and tools, most recent first. The source for most of them is on GitHub.</p>
+  <div class="grid">
+    {projects.map((project) => <ProjectCard project={project} />)}
+  </div>
+</Base>
+
+<style>
+  .grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+</style>

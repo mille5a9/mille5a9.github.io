@@ -1,0 +1,131 @@
+---
+import Base from "../layouts/Base.astro";
+
+const jobs = [
+  {
+    title: "Software Engineer",
+    company: "EarnIn (Activehours, Inc)",
+    place: "Mountain View, California",
+    dates: "June 2022 – October 2026",
+    bullets: [
+      "Designed and launched a shared Kotlin/gRPC risk-profile service fed by EventBridge, SQS, and a Python Lambda, from the inception doc and phased rollout plan through production monitoring.",
+      "Drove the 2026 infrastructure-simplification plan: wrote its inception doc and runbook, moved six legacy queue processors to shared services via flag-gated ramps (1% → 25% → 100%), retiring seven deployables.",
+      "Retired a legacy risk service by moving its last production callers (payroll and customer-care systems) onto Kotlin gRPC endpoints with feature-flag ramps and shadow comparison.",
+      "Built the backend for an experiment that raises cash-out limits for members on a paycheck-deposit streak: new policy facts and limit metadata, seven policy updates with data science, and policy macros.",
+      "Shipped limit features across products: a real-time checkpoint for an ML early-pay limit model, a card-activation boost made permanent after positive results, and repayment handling for EarnIn Payroll.",
+      "Launched risk-policy execution on an open-source rules engine and mitigated unpatched CVE-2023-50571 with an unsafe-rule filter. Built the gRPC backend and Retool admin for fraud policies, with two-person approval.",
+      "On-call first responder for risk services: root-caused a bug that skipped restore-date events for about 19% of eligible members (~2,960 users), fixed duplicate event dispatch from an undersized SQS visibility timeout, and traced 12,000+ gRPC SLO errors to downstream incidents.",
+      "Built per-queue Datadog dashboards, and removed payload logging from two Lambda proxies, cutting their projected log volume 40–64% (~6.8M fewer logs a week) and keeping member identifiers out of logs.",
+      "Built an AI review step that flags Terraform changes that would destroy infrastructure other services depend on (incident follow-up), a shared Testcontainers test framework, and a fraud-policy regression simulator.",
+      "Security champion: security reviews, design review and threat model for a third-party fraud platform, and fixes for 19 high and critical vulnerabilities. Organized onboarding for new engineers.",
+    ],
+  },
+  {
+    title: "Software Developer I",
+    company: "Battelle Memorial Institute",
+    place: "Columbus, Ohio",
+    dates: "May 2021 – May 2022",
+    bullets: ["Built full-stack search for a public CDC Data Explorer; worked directly with CDC stakeholders."],
+  },
+  {
+    title: "Software Developer Co-op",
+    company: "Myriad Neuroscience",
+    place: "Mason, Ohio",
+    dates: "January 2020 – August 2020",
+    bullets: ["Raised unit-test coverage to cut QA load, and added component tests to the microservice template."],
+  },
+  {
+    title: "Web Developer Co-op",
+    company: "Fortech LLC",
+    place: "Cincinnati, Ohio",
+    dates: "August 2018 – December 2018 · May 2019 – August 2019",
+    bullets: ["Built .NET Core MVC and React apps, including an MES dashboard for P&G plant-floor staff."],
+  },
+];
+
+const skills = [
+  ["Languages", "Kotlin (primary), Java, Python, C#, JavaScript, SQL, Groovy, C++"],
+  ["Backend", "gRPC, Protobuf, Ktor, Kotlin Coroutines, kotlinx.serialization, Spring, Vert.x, .NET Core, REST APIs"],
+  ["Data and messaging", "Kafka (Confluent), AWS EventBridge, SQS, SNS, MySQL, MongoDB, Redis, Databricks"],
+  ["Cloud and CI/CD", "AWS (Lambda, S3), Kubernetes, Docker, Terraform, Gradle, GitHub Actions, Jenkins, Spinnaker"],
+  ["Testing and observability", "JUnit 5, Testcontainers, xUnit, ktlint, detekt, Datadog (APM, logs, monitors, SLOs)"],
+  ["AI and tools", "Cursor, Claude Code, feature flags (OpenFeature, Optimizely), Retool, React"],
+];
+---
+
+<Base title="Resume" description="Resume of Andrew Miller, backend software engineer.">
+  <h1>Resume</h1>
+  <p class="muted">
+    Backend engineer with four years on the risk platform at EarnIn, building the Kotlin and gRPC services
+    that set cash-out limits and repayment timing for members. Remote.
+  </p>
+  <p><a href="/andrew-miller-resume.pdf">Download PDF</a></p>
+
+  <h2>Experience</h2>
+  {
+    jobs.map((job) => (
+      <section class="job">
+        <h3>
+          {job.title} · {job.company}
+        </h3>
+        <p class="muted meta">
+          {job.place} · {job.dates}
+        </p>
+        <ul>
+          {job.bullets.map((b) => (
+            <li>{b}</li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+
+  <h2>Education</h2>
+  <h3>University of Cincinnati, College of Engineering and Applied Science</h3>
+  <p class="muted meta">B.S., Computer Engineering · 2016 – 2021 · Cincinnatus Scholar</p>
+
+  <h2>Skills</h2>
+  <dl class="skills">
+    {
+      skills.map(([label, value]) => (
+        <div>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))
+    }
+  </dl>
+
+  <h2>Other</h2>
+  <p>Eagle Scout, October 2015.</p>
+</Base>
+
+<style>
+  .job {
+    margin-bottom: 1.75rem;
+  }
+  .meta {
+    font-size: 0.92rem;
+    margin-bottom: 0.5rem;
+  }
+  ul {
+    padding-left: 1.2rem;
+    margin: 0;
+  }
+  li {
+    margin-bottom: 0.4rem;
+  }
+  .skills {
+    margin: 0;
+  }
+  .skills div {
+    margin-bottom: 0.75rem;
+  }
+  dt {
+    font-weight: 600;
+  }
+  dd {
+    margin: 0;
+    color: var(--muted);
+  }
+</style>

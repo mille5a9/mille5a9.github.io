@@ -1,0 +1,99 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = "Andrew Miller is a backend software engineer who works mostly in Kotlin. Projects, resume, and links.",
+} = Astro.props;
+const fullTitle = title ? `${title} · Andrew Miller` : "Andrew Miller";
+
+const nav = [
+  { href: "/", label: "About" },
+  { href: "/projects/", label: "Projects" },
+  { href: "/resume/", label: "Resume" },
+];
+const path = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={new URL(path, Astro.site)} />
+  </head>
+  <body>
+    <header class="wrap site-header">
+      <a class="name" href="/">Andrew Miller</a>
+      <nav aria-label="Main">
+        {
+          nav.map((item) => (
+            <a href={item.href} aria-current={path === item.href ? "page" : undefined}>
+              {item.label}
+            </a>
+          ))
+        }
+      </nav>
+    </header>
+    <main class="wrap">
+      <slot />
+    </main>
+    <footer class="wrap site-footer muted">
+      <a href="https://github.com/mille5a9">GitHub</a>
+      <a href="https://www.linkedin.com/in/andrewm192">LinkedIn</a>
+      <a href="mailto:atmiller192@gmail.com">Email</a>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1.5rem;
+    padding-top: 1.75rem;
+    padding-bottom: 2rem;
+  }
+  .name {
+    font-weight: 700;
+    color: var(--text);
+    text-decoration: none;
+  }
+  nav {
+    display: flex;
+    gap: 1.25rem;
+  }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  nav a:hover,
+  nav a[aria-current="page"] {
+    color: var(--text);
+  }
+  nav a[aria-current="page"] {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.4em;
+  }
+  .site-footer {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: 4rem;
+    padding-top: 1.25rem;
+    padding-bottom: 2.5rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+</style>

@@ -1,0 +1,64 @@
+---
+import Base from "../layouts/Base.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { projects } from "../data/projects";
+
+const featured = projects.filter((p) => p.featured);
+---
+
+<Base>
+  <section>
+    <h1>Andrew Miller</h1>
+    <p class="lede">Backend software engineer. Kotlin first, fintech risk systems, and side projects under Hyphen Labs LLC.</p>
+    <p>
+      For four years I worked on the risk platform at EarnIn, an earned-wage-access fintech. I built the
+      Kotlin and gRPC services that decide how much a member can cash out and when it gets repaid. I led a
+      plan to move traffic off legacy queue processors onto shared services, which retired seven
+      deployables. I was also a security champion and an on-call first responder for those services.
+    </p>
+    <p>
+      Kotlin is the language I reach for first. I've also shipped production work in Java, Python, C#, and
+      JavaScript, and I use AI tools like Claude Code and Cursor in that day-to-day work. Outside of a day job I
+      run <a href="https://hyphenlabsllc.com">Hyphen Labs LLC</a>, a small software studio, where I build
+      apps and tools like the ones below.
+    </p>
+    <p>
+      I have a B.S. in Computer Engineering from the University of Cincinnati. I'm looking for remote senior
+      backend roles, working on production systems that have to be reliable.
+    </p>
+    <p class="cta">
+      <a href="/resume/">Resume</a>
+      <a href="https://github.com/mille5a9">GitHub</a>
+      <a href="https://www.linkedin.com/in/andrewm192">LinkedIn</a>
+      <a href="mailto:atmiller192@gmail.com">atmiller192@gmail.com</a>
+    </p>
+  </section>
+
+  <section>
+    <h2>Selected projects</h2>
+    <div class="grid">
+      {featured.map((project) => <ProjectCard project={project} />)}
+    </div>
+    <p class="more"><a href="/projects/">All projects →</a></p>
+  </section>
+</Base>
+
+<style>
+  .lede {
+    font-size: 1.2rem;
+    color: var(--muted);
+  }
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    margin-top: 1.5rem;
+  }
+  .grid {
+    display: grid;
+    gap: 1rem;
+  }
+  .more {
+    margin-top: 1rem;
+  }
+</style>
