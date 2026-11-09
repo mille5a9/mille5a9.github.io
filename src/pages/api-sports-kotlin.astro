@@ -1,0 +1,532 @@
+---
+import Base from "../layouts/Base.astro";
+import { nbaMethods } from "../data/nbaMethods";
+
+const groups = [...new Set(nbaMethods.map((m) => m.group))];
+---
+
+<Base
+  title="api-nba-kotlin explorer"
+  description="Try every method of the api-nba-kotlin library against the live API-NBA API, and see the matching Kotlin."
+>
+  <h1>api-nba-kotlin explorer</h1>
+  <p>
+    Pick a method from <a href="https://github.com/mille5a9/api-sports-kotlin">api-nba-kotlin</a>, my Kotlin client
+    for <a href="https://api-sports.io/documentation/nba/v2">API-NBA</a>, and run the request it makes against the live
+    API. The Kotlin on the right is the code that gets you the same data from the library.
+  </p>
+  <p class="muted small">
+    Snippets target <code>1.0.4-alpha</code>, the current release on <a href="https://central.sonatype.com/artifact/io.github.mille5a9/api-nba-kotlin">Maven Central</a>.
+  </p>
+
+  <section class="panel key">
+    <label for="apiKey">Your API-SPORTS key</label>
+    <div class="row">
+      <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key" />
+      <button type="button" id="toggleKey" class="secondary">Show</button>
+    </div>
+    <label class="check"><input type="checkbox" id="rememberKey" /> Remember it in this browser</label>
+    <p class="muted small">
+      Requests go from your browser straight to <code>v2.nba.api-sports.io</code>. The key is never sent anywhere
+      else. You can get a free key at <a href="https://dashboard.api-football.com/register">api-sports.io</a>.
+    </p>
+  </section>
+
+  <div class="wide">
+  <div class="layout">
+    <section class="panel">
+      <label for="method">Method</label>
+      <select id="method">
+        {
+          groups.map((group) => (
+            <optgroup label={group}>
+              {nbaMethods
+                .filter((m) => m.group === group)
+                .map((m) => (
+                  <option value={m.name}>{m.name}</option>
+                ))}
+            </optgroup>
+          ))
+        }
+      </select>
+      <p id="summary" class="muted"></p>
+      <form id="params"></form>
+      <button type="button" id="run">Run request</button>
+      <p class="muted small request">
+        <span class="label">Request</span>
+        <code id="requestLine"></code>
+      </p>
+    </section>
+
+    <section class="panel code">
+      <div class="code-head">
+        <span class="label">Kotlin</span>
+        <button type="button" class="secondary small-btn" data-copy="kotlin">Copy</button>
+      </div>
+      <pre><code id="kotlin"></code></pre>
+      <details>
+        <summary>Gradle dependency</summary>
+        <pre><code>implementation("io.github.mille5a9:api-nba-kotlin:1.0.4-alpha")</code></pre>
+      </details>
+    </section>
+  </div>
+
+  <section class="panel response" aria-live="polite">
+    <div class="code-head">
+      <span class="label">Response</span>
+      <span id="status" class="muted small"></span>
+      <button type="button" class="secondary small-btn" data-copy="json" hidden>Copy</button>
+    </div>
+    <p id="error" class="error" hidden></p>
+    <pre id="jsonWrap" hidden><code id="json"></code></pre>
+    <button type="button" id="showAll" class="secondary" hidden>Show the full response</button>
+    <p id="empty" class="muted">Run a request to see the response here.</p>
+  </section>
+  </div>
+</Base>
+
+<script>
+  import { nbaMethods, type NbaMethod } from "../data/nbaMethods";
+
+  const BASE_URL = "https://v2.nba.api-sports.io/";
+  const KEY_STORAGE = "api-nba-explorer-key";
+  const PREVIEW_CHARS = 40_000;
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const keyInput = $<HTMLInputElement>("apiKey");
+  const remember = $<HTMLInputElement>("rememberKey");
+  const methodSelect = $<HTMLSelectElement>("method");
+  const form = $<HTMLFormElement>("params");
+  const runButton = $<HTMLButtonElement>("run");
+  const kotlinEl = $("kotlin");
+  const jsonEl = $("json");
+  const jsonWrap = $("jsonWrap");
+  const errorEl = $("error");
+  const statusEl = $("status");
+  const emptyEl = $("empty");
+  const showAll = $<HTMLButtonElement>("showAll");
+  const copyJson = document.querySelector<HTMLButtonElement>('[data-copy="json"]')!;
+
+  let fullJson = "";
+
+  // localStorage can be missing or throw (private windows, blocked storage); the page works without it.
+  const storage = {
+    get(key: string) {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    set(key: string, value: string | null) {
+      try {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      } catch {
+        /* ignore */
+      }
+    },
+  };
+
+  const savedKey = storage.get(KEY_STORAGE);
+  if (savedKey) {
+    keyInput.value = savedKey;
+    remember.checked = true;
+  }
+  remember.addEventListener("change", () => storage.set(KEY_STORAGE, remember.checked ? keyInput.value : null));
+  keyInput.addEventListener("input", () => {
+    if (remember.checked) storage.set(KEY_STORAGE, keyInput.value);
+  });
+  $("toggleKey").addEventListener("click", (e) => {
+    const shown = keyInput.type === "text";
+    keyInput.type = shown ? "password" : "text";
+    (e.currentTarget as HTMLButtonElement).textContent = shown ? "Show" : "Hide";
+  });
+
+  const current = (): NbaMethod => nbaMethods.find((m) => m.name === methodSelect.value)!;
+
+  function values(method: NbaMethod): string[] {
+    return method.params.map((p) => (form.elements.namedItem(p.name) as HTMLInputElement | null)?.value.trim() ?? "");
+  }
+
+  function query(method: NbaMethod, vals: string[]): URLSearchParams {
+    const q = new URLSearchParams();
+    const h2h: string[] = [];
+    method.params.forEach((p, i) => {
+      if (p.combine) h2h[p.combine === "h2h-first" ? 0 : 1] = vals[i];
+      else q.set(p.query, vals[i]);
+    });
+    if (h2h.length) q.set("h2h", `${h2h[0] ?? ""}-${h2h[1] ?? ""}`);
+    for (const [k, v] of Object.entries(method.fixed ?? {})) q.set(k, v);
+    return q;
+  }
+
+  function requestUrl(method: NbaMethod, vals: string[]): string {
+    const q = query(method, vals).toString();
+    return BASE_URL + method.endpoint + (q ? `?${q}` : "");
+  }
+
+  function kotlinLiteral(type: string, value: string): string {
+    if (type === "Int") return /^-?\d+$/.test(value) ? value : `/* ${value ? "not a number" : "Int"} */ 0`;
+    return JSON.stringify(value);
+  }
+
+  function kotlin(method: NbaMethod, vals: string[]): string {
+    const args = method.params.map((p, i) => `${p.name} = ${kotlinLiteral(p.type, vals[i])}`);
+    const call =
+      args.length <= 1 ? `nba.${method.name}(${args.join("")})` : `nba.${method.name}(\n        ${args.join(",\n        ")},\n    )`;
+    const type = method.rawReturn ?? `EndpointResponse<${method.returns}>`;
+    const usage = method.rawReturn ? "println(result)" : "result.response.forEach(::println)";
+    const imports = ["api.nba.kotlin.ApiNbaClient", "api.nba.kotlin.enums.HostEnum"];
+    return [
+      ...imports.map((i) => `import ${i}`),
+      "",
+      "suspend fun main() {",
+      '    val apiKey = System.getenv("API_SPORTS_KEY")',
+      "    val nba = ApiNbaClient(HostEnum.API_SPORTS, apiKey)",
+      "",
+      `    // ${type}`,
+      `    val result = ${call}`,
+      `    ${usage}`,
+      "}",
+    ].join("\n");
+  }
+
+  function renderParams() {
+    const method = current();
+    $("summary").textContent = method.summary;
+    form.replaceChildren();
+    for (const p of method.params) {
+      const field = document.createElement("div");
+      field.className = "field";
+      const label = document.createElement("label");
+      label.htmlFor = `p-${p.name}`;
+      const name = document.createElement("code");
+      name.textContent = p.name;
+      const type = document.createElement("span");
+      type.className = "muted";
+      type.textContent = `: ${p.type}`;
+      label.append(name, type);
+      const input = document.createElement("input");
+      input.id = `p-${p.name}`;
+      input.name = p.name;
+      input.value = p.example;
+      input.required = true;
+      input.autocomplete = "off";
+      if (p.type === "Int") input.inputMode = "numeric";
+      field.append(label, input);
+      if (p.hint) {
+        const hint = document.createElement("p");
+        hint.className = "muted small";
+        hint.textContent = p.hint;
+        field.append(hint);
+      }
+      form.append(field);
+    }
+    if (!method.params.length) {
+      const none = document.createElement("p");
+      none.className = "muted small";
+      none.textContent = method.fixed
+        ? `No arguments. The method always sends ${Object.entries(method.fixed)
+            .map(([k, v]) => `${k}=${v}`)
+            .join(", ")}.`
+        : "No arguments.";
+      form.append(none);
+    } else if (method.fixed) {
+      const note = document.createElement("p");
+      note.className = "muted small";
+      note.textContent = `The method also sends ${Object.entries(method.fixed)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(", ")}.`;
+      form.append(note);
+    }
+    update();
+  }
+
+  function update() {
+    const method = current();
+    const vals = values(method);
+    kotlinEl.textContent = kotlin(method, vals);
+    $("requestLine").textContent = `GET ${requestUrl(method, vals)}`;
+    try {
+      history.replaceState(null, "", `#${method.name}`);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function showError(message: string) {
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+  }
+
+  function showJson(text: string) {
+    fullJson = text;
+    const big = text.length > PREVIEW_CHARS;
+    jsonEl.textContent = big ? `${text.slice(0, PREVIEW_CHARS)}\n…` : text;
+    showAll.hidden = !big;
+    showAll.textContent = `Show the full response (${Math.round(text.length / 1024)} KB)`;
+    jsonWrap.hidden = false;
+    copyJson.hidden = false;
+  }
+
+  async function run() {
+    const method = current();
+    const key = keyInput.value.trim();
+    errorEl.hidden = true;
+    if (!key) {
+      showError("Paste your API-SPORTS key above first.");
+      keyInput.focus();
+      return;
+    }
+    if (!form.reportValidity()) return;
+
+    const vals = values(method);
+    const badInt = method.params.find((p, i) => p.type === "Int" && !/^-?\d+$/.test(vals[i]));
+    if (badInt) {
+      showError(`${badInt.name} must be a whole number.`);
+      return;
+    }
+
+    runButton.disabled = true;
+    runButton.textContent = "Running…";
+    statusEl.textContent = "";
+    emptyEl.hidden = true;
+    const started = performance.now();
+    try {
+      const res = await fetch(requestUrl(method, vals), { headers: { "x-apisports-key": key } });
+      const text = await res.text();
+      const ms = Math.round(performance.now() - started);
+      let body: { results?: number; errors?: unknown } | null = null;
+      try {
+        body = JSON.parse(text);
+        showJson(JSON.stringify(body, null, 2));
+      } catch {
+        showJson(text);
+      }
+      const results = typeof body?.results === "number" ? ` · ${body.results} result${body.results === 1 ? "" : "s"}` : "";
+      statusEl.textContent = `HTTP ${res.status} · ${ms} ms${results}`;
+
+      const errors = body?.errors;
+      const errorList = Array.isArray(errors) ? errors.map(String) : errors && typeof errors === "object" ? Object.entries(errors).map(([k, v]) => `${k}: ${v}`) : [];
+      const tokenError = errors && typeof errors === "object" && !Array.isArray(errors) && "token" in errors;
+      if (tokenError) showError("The API didn't accept that key. Check it on your API-SPORTS dashboard.");
+      else if (errorList.length) showError(`The API returned an error. ${errorList.join(" ")}`);
+    } catch {
+      showError("The request didn't go through. Check your connection and try again.");
+    } finally {
+      runButton.disabled = false;
+      runButton.textContent = "Run request";
+    }
+  }
+
+  methodSelect.addEventListener("change", renderParams);
+  form.addEventListener("input", update);
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    run();
+  });
+  runButton.addEventListener("click", run);
+  showAll.addEventListener("click", () => {
+    jsonEl.textContent = fullJson;
+    showAll.hidden = true;
+  });
+
+  document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const text = button.dataset.copy === "json" ? fullJson : kotlinEl.textContent ?? "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "Copied";
+      } catch {
+        button.textContent = "Couldn't copy";
+      }
+      setTimeout(() => (button.textContent = "Copy"), 1500);
+    });
+  });
+
+  const fromHash = decodeURIComponent(location.hash.slice(1));
+  if (nbaMethods.some((m) => m.name === fromHash)) methodSelect.value = fromHash;
+  else methodSelect.value = "getTeamByCode";
+  renderParams();
+</script>
+
+<style>
+  .small {
+    font-size: 0.88rem;
+  }
+  .label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+    margin-top: 1rem;
+    min-width: 0;
+  }
+  .layout {
+    display: grid;
+    gap: 0 1rem;
+  }
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+  label.check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 400;
+    margin-top: 0.6rem;
+  }
+  .row {
+    display: flex;
+    gap: 0.5rem;
+  }
+  input:not([type="checkbox"]),
+  select {
+    width: 100%;
+    font: inherit;
+    font-size: 0.95rem;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 0.45rem 0.6rem;
+  }
+  input:focus-visible,
+  select:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  #summary {
+    margin: 0.6rem 0 0.9rem;
+  }
+  #params :global(.field) {
+    margin-bottom: 0.8rem;
+  }
+  #params :global(label) {
+    display: block;
+    font-weight: 400;
+    margin-bottom: 0.35rem;
+  }
+  #params :global(input) {
+    width: 100%;
+    font: inherit;
+    font-size: 0.95rem;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 0.45rem 0.6rem;
+  }
+  #params :global(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  #params :global(p) {
+    margin: 0.3rem 0 0;
+  }
+  #params :global(.muted) {
+    color: var(--muted);
+  }
+  #params :global(.small) {
+    font-size: 0.88rem;
+  }
+  button {
+    font: inherit;
+    font-size: 0.95rem;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--surface);
+    border-radius: 7px;
+    padding: 0.45rem 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--accent);
+  }
+  .small-btn {
+    font-size: 0.8rem;
+    padding: 0.15rem 0.6rem;
+    margin-left: auto;
+  }
+  .request {
+    margin: 0.9rem 0 0;
+    overflow-wrap: anywhere;
+  }
+  .request .label {
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+  .code-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+  pre {
+    margin: 0;
+    padding: 0.8rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: auto;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+  .response pre {
+    max-height: 32rem;
+  }
+  details {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+  }
+  summary {
+    cursor: pointer;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .error {
+    color: #b3261e;
+    margin: 0 0 0.6rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    .error {
+      color: #f2a19a;
+    }
+  }
+  #run {
+    margin-top: 0.4rem;
+  }
+  #showAll {
+    margin-top: 0.6rem;
+  }
+  #empty {
+    margin: 0;
+  }
+  @media (min-width: 900px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    }
+    .wide {
+      width: min(66rem, calc(100vw - 32px));
+      margin-left: 50%;
+      transform: translateX(-50%);
+    }
+  }
+</style>

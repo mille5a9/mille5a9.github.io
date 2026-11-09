@@ -29,6 +29,7 @@ export const projects: Project[] = [
       "Unofficial Kotlin client libraries for the API-SPORTS APIs, starting with API-NBA. Typed models, a generated parameter DSL, and errors surfaced as exceptions. Published to Maven Central.",
     tags: ["Kotlin", "Ktor", "kotlinx.serialization", "KSP", "Dokka", "Gradle"],
     links: [
+      { label: "Try it in the browser", href: "/api-sports-kotlin/" },
       { label: "GitHub", href: "https://github.com/mille5a9/api-sports-kotlin" },
       {
         label: "Maven Central",
